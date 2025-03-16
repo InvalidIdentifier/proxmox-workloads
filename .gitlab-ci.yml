@@ -1,0 +1,115 @@
+workflow:
+  name: 'proxmox-workloads'
+
+stages:
+  - plan
+  - deploy
+  - send_notification
+
+variables:
+  TF_ACTION:
+    value: "apply"
+    options:
+      - "plan"
+      - "apply"
+    description: "Define Terraform Action"
+
+plan:
+  stage: plan
+  image: registry.${DOMAIN}/glrunner:tf
+  script:
+    - |
+      set -e
+  
+      # create temp dir for state and mount && mount share
+      mkdir -p /tmp/mount /tmp/state
+      mount -t cifs -o username=$TF_STATE_MOUNT_USER,password=$TF_STATE_MOUNT_PW //${GITLAB_HOST}/tfbasestate /tmp/mount
+
+      # move state from mount to temp dir
+      cp /tmp/mount/pve_guest_state.tfstate /tmp/state/pve_guest_state.tfstate 2>/dev/null || :
+
+      # export variables for use in terraform
+      export PM_API_TOKEN_ID=$PM_API_TOKEN
+      export PM_API_TOKEN_SECRET=$PM_API_SECRET
+      export TF_VAR_ssh_server_pub_key=$SSH_PUB_KEY_ED25519_VAR
+      export TF_VAR_ssh_laptop_pub_key=$TF_SSH_LAPTOP_PUB_KEY
+      export TF_VAR_user_username=$TF_USER_USERNAME
+      export TF_VAR_user_password=$TF_USER_PASSWORD
+      export TF_VAR_proxmox_host=$PROXMOX_HOST_242
+      export TF_VAR_vlan_infra=$VLAN_INFRA
+      export TF_VAR_vlan_dmz=$VLAN_DMZ
+      export TF_VAR_vlan_base=$VLAN_BASE
+      
+      # do terraform stuff
+      terraform -chdir=terraform init || FAILED="1"
+      terraform -chdir=terraform plan || FAILED="1"
+
+      # move state back to share
+      cp /tmp/state/pve_guest_state.tfstate /tmp/mount/pve_guest_state.tfstate 2>/dev/null || :
+
+      if [[ "$FAILED" -eq "1" ]];then
+        echo "PIPELINE FAILED!"
+        exit 1
+      fi
+
+deploy:
+  stage: deploy
+  image: registry.${DOMAIN}/glrunner:tf
+  script:
+    - |
+      set -e
+
+      TIMESTAMP=$(date +"%Y-%m-%d-%H-%M-%S")
+
+      # create temp dir for state and mount && mount share
+      mkdir -p /tmp/mount /tmp/state
+      mount -t cifs -o username=$TF_STATE_MOUNT_USER,password=$TF_STATE_MOUNT_PW //${GITLAB_HOST}/tfbasestate /tmp/mount
+      mkdir -p /tmp/mount/gueststate_snapshots
+
+      # move state from mount to temp dir
+      cp /tmp/mount/pve_guest_state.tfstate /tmp/state/pve_guest_state.tfstate 2>/dev/null || :
+
+      if [[ $TF_ACTION != "plan" ]];then
+        TF_OPTIONS="--auto-approve"
+      fi
+
+      # export variables for use in terraform
+      export PM_API_TOKEN_ID=$PM_API_TOKEN
+      export PM_API_TOKEN_SECRET=$PM_API_SECRET
+      export TF_VAR_ssh_server_pub_key=$SSH_PUB_KEY_ED25519_VAR
+      export TF_VAR_ssh_laptop_pub_key=$TF_SSH_LAPTOP_PUB_KEY
+      export TF_VAR_user_username=$TF_USER_USERNAME
+      export TF_VAR_user_password=$TF_USER_PASSWORD
+      export TF_VAR_proxmox_host=$PROXMOX_HOST_242
+      export TF_VAR_vlan_infra=$VLAN_INFRA
+      export TF_VAR_vlan_dmz=$VLAN_DMZ
+      export TF_VAR_vlan_base=$VLAN_BASE
+      
+      # do terraform stuff
+      terraform -chdir=terraform init || FAILED="1"
+      terraform -chdir=terraform $TF_ACTION $TF_OPTIONS || FAILED="1"
+
+      # backup tfstate
+      cp /tmp/state/pve_guest_state.tfstate /tmp/mount/gueststate_snapshots/pve_guest_state.tfstate-${TIMESTAMP}_${CI_JOB_ID}_${CI_COMMIT_SHORT_SHA}
+
+      # move state back to share
+      cp /tmp/state/pve_guest_state.tfstate /tmp/mount/pve_guest_state.tfstate 2>/dev/null || :
+
+      if [[ "$FAILED" -eq "1" ]];then
+        echo "PIPELINE FAILED!"
+        exit 1
+      fi
+
+      # delete >30 days old tfstate backups
+      find /tmp/mount/gueststate_snapshots -name "pve_guest_state.tfstate-*" -mtime +30 -exec rm {} \;
+  when: manual
+
+send_notification:
+  stage: send_notification
+  image: registry.${DOMAIN}/glrunner:base
+  script:
+    - |
+      ####  send notifications ####
+      curl -H "X-Tags: robot" -u :$NTFY_TOKEN -d "Pipeline - $CI_PIPELINE_NAME - was successfull" https://notify.${DOMAIN}/pipelines
+  needs: 
+    - deploy
