@@ -1,8 +1,8 @@
-resource "proxmox_vm_qemu" "vmQemuNode171" {
+resource "proxmox_vm_qemu" "vmQemuNode180" {
     target_node = var.target_node_242
-    name        = "node171"
+    name        = "node180"
     clone       = var.deb12_template_242
-    vmid        = "171"
+    vmid        = "180"
 
     cores       = 4
     sockets     = 1
@@ -47,7 +47,7 @@ resource "proxmox_vm_qemu" "vmQemuNode171" {
     # }
 
     os_type         = "cloud-init"
-    ipconfig0       = "ip=${var.vlan_infra}.171/24,gw=${var.vlan_infra}.1"
+    ipconfig0       = "ip=${var.vlan_infra}.180/24,gw=${var.vlan_infra}.1"
     # ipconfig1       = "ip=${var.vlan_dmz}.100/24,gw=${var.vlan_dmz}.1"
     nameserver      = "${var.vlan_base}.1"
     ciuser          = var.user_username
