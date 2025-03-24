@@ -11,7 +11,7 @@ resource "proxmox_vm_qemu" "vmQemuNode100" {
     boot        = "order=scsi0"
     hastate     = "started"
     hagroup     = "HA"
-    tags        = "infra"
+    tags        = "docker"
     scsihw      = "virtio-scsi-pci"
 
     disks {
