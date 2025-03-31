@@ -11,7 +11,7 @@ resource "proxmox_vm_qemu" "vmQemuNode153" {
     boot        = "order=scsi0"
     hastate     = "started"
     hagroup     = "HA"
-    tags        = "k3s"
+    tags        = "k3s_server"
     scsihw      = "virtio-scsi-pci"
 
     disks {
