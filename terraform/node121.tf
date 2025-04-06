@@ -27,6 +27,7 @@ resource "proxmox_vm_qemu" "vmQemuNode121" {
             }
             scsi1 {
                 disk {
+                    format     = "qcow2"
                     cache      = "none"
                     discard    = true
                     emulatessd = true
