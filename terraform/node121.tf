@@ -31,7 +31,7 @@ resource "proxmox_vm_qemu" "vmQemuNode121" {
                     discard    = true
                     emulatessd = true
                     size       = 200
-                    storage    = "slow_data"
+                    storage    = "raid"
                     replicate  = true
                 }
             }
