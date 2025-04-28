@@ -39,16 +39,11 @@ resource "proxmox_vm_qemu" "vmQemuNode100" {
     network {
         bridge = "vmbr0"
         model  = "virtio"
+        tag    = 254
     }
-    # network {
-    #     bridge = "vmbr0"
-    #     model  = "virtio"
-    #     tag    = 254
-    # }
 
     os_type         = "cloud-init"
-    ipconfig0       = "ip=${var.vlan_infra}.100/24,gw=${var.vlan_infra}.1"
-    # ipconfig1       = "ip=${var.vlan_dmz}.100/24,gw=${var.vlan_dmz}.1"
+    ipconfig0       = "ip=${var.vlan_dmz}.100/24,gw=${var.vlan_dmz}.1"
     nameserver      = "${var.vlan_base}.1"
     ciuser          = var.user_username
     cipassword      = var.user_password
