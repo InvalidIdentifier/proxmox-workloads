@@ -25,6 +25,8 @@ plan:
       mkdir -p /tmp/mount /tmp/state
       mount -t cifs -o username=$TF_STATE_MOUNT_USER,password=$TF_STATE_MOUNT_PW //${GITLAB_HOST}/tfbasestate /tmp/mount
 
+
+
       # move state from mount to temp dir
       cp /tmp/mount/pve_guest_state.tfstate /tmp/state/pve_guest_state.tfstate 2>/dev/null || :
 
