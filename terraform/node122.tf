@@ -11,7 +11,7 @@ resource "proxmox_vm_qemu" "vmQemuNode122" {
     boot        = "order=scsi0"
     hastate     = "started"
     hagroup     = "HA"
-    tags        = "docker"
+    tags        = "docker,infra"
     scsihw      = "virtio-scsi-pci"
 
     disks {

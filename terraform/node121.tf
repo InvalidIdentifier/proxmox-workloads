@@ -11,7 +11,7 @@ resource "proxmox_vm_qemu" "vmQemuNode121" {
     boot        = "order=scsi0"
     hastate     = "started"
     hagroup     = "HA"
-    tags        = "docker"
+    tags        = "docker,infra"
 
     disks {
         scsi {
